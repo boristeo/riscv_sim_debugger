@@ -5,17 +5,13 @@ RISC-V Simulator Debugger
 1. Somehow get ahold of the simulator.
 This will be a challenge unless you are currently in my class since we are not allowed to share code.
 
-2. Install riscv-tools:
+2. Install riscv-tools: https://github.com/riscv/riscv-tools
 
-(https://github.com/riscv/riscv-tools)
-
-or if you are using a mac like me:
-
-(https://github.com/riscv/homebrew-riscv)
+   Or if you are using a mac like me: https://github.com/riscv/homebrew-riscv
 
 3. Make sure you add the riscv gnu toolchain bin directory to PATH so that this program can call the assembler and other tools as needed.
 
-If you type `which riscv64-unknown-elf-as` into your terminal and it outputs a path, you're good.
+   If you type `which riscv64-unknown-elf-as` into your terminal and it outputs a path, you're good.
 
 4. Install Python 3 if you don't already have it.
 
