@@ -12,7 +12,12 @@ def validate_test_file():
 
 
 if __name__ == '__main__':
-    riscv_sim_dir = '../bateodor/riscv_sim'
+    if len(sys.argv) != 2:
+        print('At this time the program accepts only one argument - the simulator executable')
+        print('Usage: ./%s <path/to/executable>' % os.path.split(sys.argv[0])[-1])
+        exit(1)
+
+    riscv_sim_dir = sys.argv[1]
 
     tests_dir = 'tests'
     generated_dir = 'generated'
@@ -41,6 +46,7 @@ if __name__ == '__main__':
     for test in tests:
         current_test_base_path = os.path.join(generated_dir, test)
 
+        print('Running test: %s' % test)
         with open(current_test_base_path + '.script') as file:
             with pex.spawn(riscv_sim_dir) as sim:
                 loaded = False
