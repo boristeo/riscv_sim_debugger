@@ -63,7 +63,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
         asm_instrs = asm_file.readlines()
         last_reg_vals = [-1 for _ in range(RISCV_REG_COUNT)]
         pc = 0
-        while pc < int(len(asm_instrs) / 4):
+        while pc / 4 < len(asm_instrs):
             print('PC=0x%x' % pc)
             print(asm_instrs[int(pc / 4)])
             riscv_sim.sendline('run %d 1' % pc)
