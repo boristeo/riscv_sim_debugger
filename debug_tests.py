@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import os
 import pexpect as pex
@@ -51,11 +53,13 @@ if __name__ == '__main__':
             with pex.spawn(riscv_sim_dir) as sim:
                 loaded = False
 
+                regs = []
+
                 for command in file.readlines():
                     if command.startswith('run'):
                         loaded = True
                         print('### BEGIN PROGRAM EXECUTION ###', end='\n\n')
-                        run_by_line(current_test_base_path, riscv_sim=sim)
+                        regs = run_by_line(current_test_base_path, riscv_sim=sim)
                         print('### END PROGRAM EXECUTION ###')
 
                     elif not loaded:

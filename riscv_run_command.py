@@ -23,10 +23,10 @@ def run_sim_command(command_to_exec: str, *, riscv_sim: pex.pty_spawn):
     return str(filtered)
 
 
-def get_all_reg_vals(riscv_sim: pex.pty_spawn) -> []:
-    reg_vals = [0 for _ in range(RISCV_REG_COUNT)]
+def get_reg_vals(regs_to_get=[i for i in range(RISCV_REG_COUNT)], *, riscv_sim: pex.pty_spawn) -> []:
+    reg_vals = [0 for _ in range(len(regs_to_get))]
 
-    for reg in range(RISCV_REG_COUNT):
+    for reg in regs_to_get:
         riscv_sim.sendline('readreg %d' % reg)
         riscv_sim.expect(RISCV_INPUT_HEADER)
         response = riscv_sim.before.decode()
@@ -44,7 +44,7 @@ def get_all_reg_vals(riscv_sim: pex.pty_spawn) -> []:
     return reg_vals
 
 
-def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn):
+def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
     if riscv_sim.closed:
         raise ConnectionError('Simulator process is not running.')
 
@@ -66,18 +66,18 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn):
             print(instr)
             riscv_sim.sendline('run %d 1' % pc)
             riscv_sim.expect(RISCV_INPUT_HEADER)
-            new_reg_vals = get_all_reg_vals(riscv_sim)
+            new_reg_vals = get_reg_vals(riscv_sim=riscv_sim)
             changed = False
             for reg, new_val in enumerate(new_reg_vals):
                 if last_reg_vals[reg] != new_val:
-                    print('R%2d %6s = 0x%x   ' % (reg, '(' + REGISTER_TO_STR[reg] + ')', new_val))
+                    print('R%-2d %-6s = 0x%x   ' % (reg, '(' + REGISTER_TO_STR[reg] + ')', new_val))
                     changed = True
             if not changed:
                 print('No registers changed')
 
             last_reg_vals = new_reg_vals
             print()
-            input('(Press ENTER to continue)')
+            if input('(Press ENTER to continue or type "quit" to stop) > ') == 'quit':
+                break
 
-
-
+        return last_reg_vals
