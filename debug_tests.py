@@ -68,3 +68,5 @@ if __name__ == '__main__':
 
                     else:
                         print(run_sim_command(command, riscv_sim=sim))
+
+

@@ -62,10 +62,14 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
     with open(current_test_base_path + '.s') as asm_file:
         asm_instrs = asm_file.readlines()
         last_reg_vals = [-1 for _ in range(RISCV_REG_COUNT)]
-        for pc, instr in enumerate(asm_instrs):
-            print(instr)
+        pc = 0
+        while pc < int(len(asm_instrs) / 4):
+            print('PC=0x%x' % pc)
+            print(asm_instrs[int(pc / 4)])
             riscv_sim.sendline('run %d 1' % pc)
             riscv_sim.expect(RISCV_INPUT_HEADER)
+            new_pc_str = re.search('\(PC=(.+?)\)', riscv_sim.match.group(0).decode()).group(1)
+            pc = int(new_pc_str, 16)
             new_reg_vals = get_reg_vals(riscv_sim=riscv_sim)
             changed = False
             for reg, new_val in enumerate(new_reg_vals):
