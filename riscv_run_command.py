@@ -1,7 +1,11 @@
 import re
 import pexpect as pex
+import os
+
+from rv_test.registers import REGISTER_TO_STR
 
 RISCV_INPUT_HEADER = 'RISCV \(PC=0x.*\)> '
+RISCV_REG_COUNT = 32
 
 
 def run_sim_command(command_to_exec: str, *, riscv_sim: pex.pty_spawn):
@@ -19,5 +23,61 @@ def run_sim_command(command_to_exec: str, *, riscv_sim: pex.pty_spawn):
     return str(filtered)
 
 
-def run_by_line(asm, *, riscv_sim: pex.pty_spawn):
-    pass
+def get_all_reg_vals(riscv_sim: pex.pty_spawn) -> []:
+    reg_vals = [0 for _ in range(RISCV_REG_COUNT)]
+
+    for reg in range(RISCV_REG_COUNT):
+        riscv_sim.sendline('readreg %d' % reg)
+        riscv_sim.expect(RISCV_INPUT_HEADER)
+        response = riscv_sim.before.decode()
+        try:
+            reg_index_str = re.search('R(.+?) =', response).group(1)
+            reg_val_str = re.search('= (.+?)\n', response).group(1)
+
+            assert reg_index_str == str(reg)
+
+        except AttributeError:
+            raise RuntimeError
+
+        reg_vals[reg] = int(reg_val_str)
+
+    return reg_vals
+
+
+def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn):
+    if riscv_sim.closed:
+        raise ConnectionError('Simulator process is not running.')
+
+    with open(current_test_base_path + '.expected.txt') as expected_reg_file:
+        final_reg_vals = [0 for _ in range(RISCV_REG_COUNT)]
+        for line in expected_reg_file:
+            try:
+                reg_index_str = re.search('R(.+?) =', line).group(1)
+                reg_val_str = re.search('= (.+?)\n', line).group(1)
+            except AttributeError:
+                continue
+
+            final_reg_vals[int(reg_index_str)] = int(reg_val_str)
+
+    with open(current_test_base_path + '.s') as asm_file:
+        asm_instrs = asm_file.readlines()
+        last_reg_vals = [-1 for _ in range(RISCV_REG_COUNT)]
+        for pc, instr in enumerate(asm_instrs):
+            print(instr)
+            riscv_sim.sendline('run %d 1' % pc)
+            riscv_sim.expect(RISCV_INPUT_HEADER)
+            new_reg_vals = get_all_reg_vals(riscv_sim)
+            changed = False
+            for reg, new_val in enumerate(new_reg_vals):
+                if last_reg_vals[reg] != new_val:
+                    print('R%2d %6s = 0x%x   ' % (reg, '(' + REGISTER_TO_STR[reg] + ')', new_val))
+                    changed = True
+            if not changed:
+                print('No registers changed')
+
+            last_reg_vals = new_reg_vals
+            print()
+            input('(Press ENTER to continue)')
+
+
+

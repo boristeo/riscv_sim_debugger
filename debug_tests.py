@@ -54,9 +54,12 @@ if __name__ == '__main__':
                 for command in file.readlines():
                     if command.startswith('run'):
                         loaded = True
-                        run_by_line(current_test_base_path + '.s', riscv_sim=sim)
+                        print('### BEGIN PROGRAM EXECUTION ###', end='\n\n')
+                        run_by_line(current_test_base_path, riscv_sim=sim)
+                        print('### END PROGRAM EXECUTION ###')
 
                     elif not loaded:
+                        print(command, end='')
                         run_sim_command(command, riscv_sim=sim)
 
                     else:
