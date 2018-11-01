@@ -60,7 +60,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
             final_reg_vals[int(reg_index_str)] = int(reg_val_str)
 
     with open(current_test_base_path + '.s') as asm_file:
-        asm_instrs = asm_file.readlines()
+        asm_instrs = [l for l in (line.strip() for line in asm_file.readlines()) if l]
         last_reg_vals = [-1 for _ in range(RISCV_REG_COUNT)]
         pc = 0
         while pc / 4 < len(asm_instrs):
