@@ -23,18 +23,26 @@ git clone https://github.com/boristeo/riscv_sim_debugger
 
 6. Install any necessary packages. In theory I have a requirements file, but I suspect that there are a lot more packages necessary.
 
-7. If desired, chmod the file `debug_tests.py` to allow execute.
+7. `chmod +x debug_tests.py` to allow execute.
 
 And that should be it. If anyone actually tries this and finds issues, PLEASE tell me.
 For every person who reports something as broken, ten others get frustrated and give up. I want people to actually try this out.
 
 ## Usage
-At the moment, this program is slightly pointless, so all you can do is pass in the path to your simulator executable and it will run and print the output to any tests it finds in the `tests/` directory.
+At the moment, this program is slightly underdeveloped, so all you can do is pass in the path to your simulator executable and it will run any tests it finds in a `tests/` directory in your working directory.
+
+```
+./debug_tests.py ./path/to/simulator
+```
 
 These tests are of the same format as those used by SeijiEmery in his rv-test project (https://github.com/seijiemery/rv-test). 
 As a matter of fact, I literally use that project for the majority of what this program does at the moment.
 
 Hopefully that will change soon as I add various debugging features like stepping and variable watches.
+
+## Features
+* Step through execution in order, seeing what registers are changed in each instruction
+* Dump all register values at any line in program execution
 
 ## Description
 This is a work in progress (obviously), but the intent is to create a system for interactive debugging of the RISC-V simulator that I am currently working on as a project for my computer architecture course.
