@@ -64,7 +64,6 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
     if riscv_sim.closed:
         raise ConnectionError('Simulator process is not running.')
 
-    # MAIN EXECUTE LOOP #
     with open(current_test_base_path + '.s') as asm_file:
         # Preload assembly to show alongside results
         asm_instrs = asm_file.readlines()
@@ -82,6 +81,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
                 continue
             i += 1
 
+        # Set beginning values
         pc = 0
         ic = 0
         last_reg_vals = []
@@ -95,6 +95,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
         print()
         config_util_subloop(pc, riscv_sim, **{'show': 'help'})
 
+        # MAIN EXECUTE LOOP #
         while pc / 4 < len(asm_instrs) and not asm_instrs[int(pc / 4)].startswith('ebreak'):
 
             # Do additional stuff if user wants to or break
@@ -131,11 +132,14 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
                     print('No registers changed')
 
             elif not instr_text.startswith(('j ', 's', 'b')):
+                try:
                     affected_str = re.search('\s+([a-z0-9]*?),', instr_text).group(1)
                     affected = REGISTER_MAPPINGS[affected_str]
                     affected_new_val = next(get_reg_vals([affected], riscv_sim=riscv_sim))
                     print_reg(affected, affected_new_val)
                     last_reg_vals[affected].append((affected_new_val, ic))
+                except AttributeError:
+                    pass
 
             new_pc_str = re.search('\(PC=(.+?)\)', riscv_sim.match.group(0).decode()).group(1)
             pc = int(new_pc_str, 16)
