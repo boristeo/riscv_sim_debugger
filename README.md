@@ -43,6 +43,7 @@ As a matter of fact, I literally use that project for the majority of what this 
 * Dump all register values at any line in program execution
 * Rigorous mode - verify that at most 1 register is being written to each cycle (off by default because it is SLOW)
 * Verbose mode - All the same functionality of rigorous mode, but prints all 32 registers after each step
+* Minimal mode - Shows enough to be useful and no more than that
 
 ## Description
 This is a work in progress (obviously), but the intent is to create a system for interactive debugging of the RISC-V simulator that I am currently working on as a project for my computer architecture course.
