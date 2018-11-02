@@ -60,6 +60,7 @@ if __name__ == '__main__':
                         loaded = True
                         print('### BEGIN PROGRAM EXECUTION ###', end='\n\n')
                         regs = run_by_line(current_test_base_path, riscv_sim=sim)
+                        print()
                         print('### END PROGRAM EXECUTION ###')
                         print('Expected:')
 
@@ -71,3 +72,4 @@ if __name__ == '__main__':
                         print(run_sim_command(command, riscv_sim=sim))
 
         print('\n')
+        input('PRESS ENTER TO CONTINUE')
