@@ -18,7 +18,7 @@ This will be a challenge unless you are currently in my class since we are not a
 5. Run
 
 ```
-git clone https://github.com/boristeo/riscv_sim_debugger
+git clone --recurse-submodules https://github.com/boristeo/riscv_sim_debugger
 ```
 
 6. Install any necessary packages. In theory I have a requirements file, but I suspect that there are a lot more packages necessary.
