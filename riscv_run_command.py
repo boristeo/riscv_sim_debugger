@@ -35,8 +35,6 @@ def run_sim_command(command_to_exec: str, *, riscv_sim: pex.pty_spawn):
 
 
 def get_reg_vals(regs_to_get=[i for i in range(RISCV_REG_COUNT)], *, riscv_sim: pex.pty_spawn) -> []:
-    reg_vals = [0 for _ in range(len(regs_to_get))]
-
     for i, reg in enumerate(regs_to_get):
         riscv_sim.sendline('readreg %d' % reg)
         riscv_sim.expect(RISCV_INPUT_HEADER)
@@ -50,9 +48,7 @@ def get_reg_vals(regs_to_get=[i for i in range(RISCV_REG_COUNT)], *, riscv_sim: 
         except AttributeError:
             raise RuntimeError
 
-        reg_vals[i] = int(reg_val_str)
-
-    return reg_vals
+        yield int(reg_val_str)
 
 
 rigorous_mode = False
@@ -87,11 +83,13 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
 
         pc = 0
         ic = 0
+        last_reg_vals = []
 
         print_reg_header()
-        last_reg_vals = [[(v, 0)] for v in get_reg_vals(riscv_sim=riscv_sim)]
-        for i, reg in enumerate(last_reg_vals):
-            print_reg(i, reg[-1][ic])
+
+        for i, val in enumerate(get_reg_vals(riscv_sim=riscv_sim)):
+            last_reg_vals.append([(val, ic)])
+            print_reg(i, val)
 
         print()
         config_util_subloop(pc, riscv_sim, **{'show': 'help'})
