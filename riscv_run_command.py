@@ -7,6 +7,15 @@ from rv_test.registers import REGISTER_TO_STR, REGISTER_MAPPINGS
 RISCV_INPUT_HEADER = 'RISCV \(PC=0x.*\)> '
 RISCV_REG_COUNT = 32
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 def run_sim_command(command_to_exec: str, *, riscv_sim: pex.pty_spawn):
     if riscv_sim.closed:
@@ -44,22 +53,17 @@ def get_reg_vals(regs_to_get=[i for i in range(RISCV_REG_COUNT)], *, riscv_sim: 
     return reg_vals
 
 
+rigorous_mode = False
+verbose_mode = False
+minimal_mode = False
+
+
 def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
+
     if riscv_sim.closed:
         raise ConnectionError('Simulator process is not running.')
 
-    # What am I doing here again??
-    with open(current_test_base_path + '.expected.txt') as expected_reg_file:
-        final_reg_vals = [0 for _ in range(RISCV_REG_COUNT)]
-        for line in expected_reg_file:
-            try:
-                reg_index_str = re.search('R([0-9]+?) =', line).group(1)
-                reg_val_str = re.search('=\s*(.+?)\n', line).group(1)
-            except AttributeError:
-                continue
-
-            final_reg_vals[int(reg_index_str)] = int(reg_val_str)
-
+    # MAIN EXECUTE LOOP #
     with open(current_test_base_path + '.s') as asm_file:
         asm_instrs = [l for l in (line.strip() for line in asm_file.readlines()) if l]
         pc = 0
@@ -68,12 +72,9 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
         print_reg_header()
         last_reg_vals = [[(v, 0)] for v in get_reg_vals(riscv_sim=riscv_sim)]
         for i, reg in enumerate(last_reg_vals):
-            print_reg(i, reg[-1][0])
+            print_reg(i, reg[-1][ic])
         print()
-        print('PC 0x0 >')
-
-        rigorous_mode = False
-        verbose_mode = False
+        print_pc(0)
 
         while pc / 4 < len(asm_instrs) and not asm_instrs[int(pc / 4)].startswith('ebreak'):
             print(asm_instrs[int(pc / 4)])
@@ -113,70 +114,106 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
             pc = int(new_pc_str, 16)
             ic += 1
 
-            times_typed_exit = 0
-            while True:
-                print()
-                next_action = input('PC 0x%X > ' % pc)
-                if next_action == 'stop':
-                    return last_reg_vals
-
-                elif next_action == 'quit':
-                    exit(0)
-
-                elif next_action == 'exit':
-                    times_typed_exit += 1
-                    if times_typed_exit < 3:
-                        print('No, this program uses "quit". Try again.')
-                        continue
-                    else:
-                        print('Fine.')
-                        exit(0)
-
-                elif next_action == 'help':
-                    options = [('<ENTER> , "s"', 'Step once.'),
-                               ('"regdump"', 'Print all reg values.'),
-                               ('"[!]rigorous"', 'Check all reg values for changes. WARNING: SLOW'),
-                               ('"[!]verbose"', 'Print all reg values after each instruction (also enables rigorous).'),
-                               ('"stop"', 'End test.'),
-                               ('"quit"', 'Exit program.')]
-                    print('Options:')
-                    for option in options:
-                        print('\t%-20s: %s' % option)
-
-                elif next_action == 'regdump':
-                    for i, reg in enumerate(get_reg_vals(riscv_sim=riscv_sim)):
-                        print_reg(i, reg)
-
-                elif next_action == 'rigorous':
-                    rigorous_mode = True
-
-                elif next_action == '!rigorous':
-                    rigorous_mode = False
-
-                elif next_action == 'verbose':
-                    verbose_mode = True
-
-                elif next_action == '!verbose':
-                    verbose_mode = False
-
-                elif next_action == '':
-                    break
-
-                else:
-                    print('Invalid command. Type "help" for help')
+            # Do additional stuff if user wants to or break
+            if config_util_subloop(pc, riscv_sim):
+                break
 
         return last_reg_vals
 
 
+# HELPERS #
+def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn) -> bool:
+    global rigorous_mode
+    global verbose_mode
+    global minimal_mode
+
+    times_typed_exit = 0
+    while True:
+        print()
+        print_pc(pc)
+        next_action = input()
+        if next_action == 'stop':
+            return True
+
+        elif next_action == 'quit':
+            exit(0)
+
+        elif next_action == 'exit':
+            times_typed_exit += 1
+            if times_typed_exit < 3:
+                print('No, this program uses "quit". Try again.')
+                continue
+            else:
+                print('Fine.')
+                exit(0)
+
+        elif next_action == 'help':
+            options = [('<ENTER> , "s"', 'Step once.'),
+                       ('"regdump"', 'Print all reg values.'),
+                       ('"[!]rigorous"', 'Check all reg values for changes. WARNING: SLOW'),
+                       ('"[!]verbose"', 'Print all reg values after each instruction (also enables rigorous).'),
+                       ('"[!]minimal"', 'Reduce printed clutter.'),
+                       ('"stop"', 'End test.'),
+                       ('"quit"', 'Exit program.')]
+
+            print('Options:')
+            for option in options:
+                print('\t%-20s: %s' % option)
+
+        elif next_action == 'regdump':
+            for i, reg in enumerate(get_reg_vals(riscv_sim=riscv_sim)):
+                print_reg(i, reg)
+
+        elif next_action == 'rigorous':
+            rigorous_mode = True
+
+        elif next_action == '!rigorous':
+            rigorous_mode = False
+
+        elif next_action == 'verbose':
+            verbose_mode = True
+
+        elif next_action == '!verbose':
+            verbose_mode = False
+
+        elif next_action == 'minimal':
+            minimal_mode = True
+
+        elif next_action == '!minimal':
+            minimal_mode = False
+
+        elif next_action == '':
+            break
+
+        else:
+            print('Invalid command. Type "help" for help')
+
+
+def print_pc(pc):
+    global minimal_mode
+    if minimal_mode:
+        print(bcolors.OKGREEN + '> ' + bcolors.ENDC, end='')
+    else:
+        print(bcolors.OKGREEN + 'PC 0x%X > ' % pc + bcolors.ENDC, end='')
+
+
 def print_reg_header():
-    print('%-3s %-6s    %18s    %20s    %20s' % ('r#', 'name', 'hexadecimal', 'unsigned decimal', 'signed decimal'))
-    print('___ ______    __________________    ____________________    ____________________')
+    if not minimal_mode:
+        if not verbose_mode:
+            print('%-3s %-6s    %18s    %20s    %20s' % ('r#', 'name', 'hexadecimal', 'unsigned decimal', 'signed decimal'))
+            print('___ ______    __________________    ____________________    ____________________')
+        else:
+            print('? %-3s %-6s    %18s    %20s    %20s' % ('r#', 'name', 'hexadecimal', 'unsigned decimal', 'signed decimal'))
+            print('_ ___ ______    __________________    ____________________    ____________________')
 
 
 def print_reg(reg, value):
-    print('R%-2d %-6s    0x%16X    %20d    %20d' %
-          (reg,
-           '(' + REGISTER_TO_STR[reg] + ')',
-           value,
-           value,
-           value if value <= 0x7fffffffffffffff else -(value - 0x8000000000000000)))
+    if not minimal_mode:
+        print('R%-2d %-6s    0x%16X    %20d    %20d' %
+              (reg,
+               '(' + REGISTER_TO_STR[reg] + ')',
+               value,
+               value,
+               value if value <= 0x7fffffffffffffff else -(value - 0x8000000000000000)))
+    else:
+        print('%-4s  0x%X' % (REGISTER_TO_STR[reg], value))

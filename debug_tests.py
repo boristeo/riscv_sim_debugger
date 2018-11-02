@@ -61,6 +61,7 @@ if __name__ == '__main__':
                         print('### BEGIN PROGRAM EXECUTION ###', end='\n\n')
                         regs = run_by_line(current_test_base_path, riscv_sim=sim)
                         print('### END PROGRAM EXECUTION ###')
+                        print('Expected:')
 
                     elif not loaded:
                         print(command, end='')
@@ -69,4 +70,4 @@ if __name__ == '__main__':
                     else:
                         print(run_sim_command(command, riscv_sim=sim))
 
-
+        print('\n')
