@@ -7,6 +7,7 @@ from rv_test.registers import REGISTER_TO_STR, REGISTER_MAPPINGS
 RISCV_INPUT_HEADER = 'RISCV \(PC=0x.*\)> '
 RISCV_REG_COUNT = 32
 
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -16,6 +17,7 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
 
 def run_sim_command(command_to_exec: str, *, riscv_sim: pex.pty_spawn):
     if riscv_sim.closed:
@@ -56,9 +58,11 @@ def get_reg_vals(regs_to_get=[i for i in range(RISCV_REG_COUNT)], *, riscv_sim: 
 rigorous_mode = False
 verbose_mode = False
 minimal_mode = False
+runthrough_mode = False
 
 
 def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
+    global runthrough_mode
 
     if riscv_sim.closed:
         raise ConnectionError('Simulator process is not running.')
@@ -74,9 +78,15 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
         for i, reg in enumerate(last_reg_vals):
             print_reg(i, reg[-1][ic])
         print()
-        print_pc(0)
+        config_util_subloop(pc, riscv_sim, **{'show': 'help'})
 
         while pc / 4 < len(asm_instrs) and not asm_instrs[int(pc / 4)].startswith('ebreak'):
+
+            # Do additional stuff if user wants to or break
+            if not runthrough_mode:
+                if config_util_subloop(pc, riscv_sim):
+                    break
+
             print(asm_instrs[int(pc / 4)])
             riscv_sim.sendline('run %d 1' % pc)
             riscv_sim.expect(RISCV_INPUT_HEADER)
@@ -114,25 +124,28 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
             pc = int(new_pc_str, 16)
             ic += 1
 
-            # Do additional stuff if user wants to or break
-            if config_util_subloop(pc, riscv_sim):
-                break
-
+        runthrough_mode = False
         return last_reg_vals
 
 
 # HELPERS #
-def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn) -> bool:
+def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
     global rigorous_mode
     global verbose_mode
     global minimal_mode
+    global runthrough_mode
 
     times_typed_exit = 0
     while True:
         print()
-        print_pc(pc)
-        next_action = input()
-        if next_action == 'stop':
+
+        if 'show' not in kwargs:
+            print_pc(pc)
+            next_action = input()
+        else:
+            next_action = kwargs['show']
+
+        if next_action == 'stop' or next_action == 'skip':
             return True
 
         elif next_action == 'quit':
@@ -147,18 +160,22 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn) -> bool:
                 print('Fine.')
                 exit(0)
 
-        elif next_action == 'help':
+        elif next_action == 'help' or next_action == 'h':
             options = [('<ENTER> , "s"', 'Step once.'),
                        ('"regdump"', 'Print all reg values.'),
                        ('"[!]rigorous"', 'Check all reg values for changes. WARNING: SLOW'),
                        ('"[!]verbose"', 'Print all reg values after each instruction (also enables rigorous).'),
                        ('"[!]minimal"', 'Reduce printed clutter.'),
-                       ('"stop"', 'End test.'),
+                       ('"run"', 'Run through remaining portion of test, continue to next.'),
+                       ('"stop", "skip"', 'End test, continue to next.'),
+                       ('"help", "h"', 'Show this help message.'),
                        ('"quit"', 'Exit program.')]
 
             print('Options:')
             for option in options:
                 print('\t%-20s: %s' % option)
+            if 'show' in kwargs:
+                break
 
         elif next_action == 'regdump':
             for i, reg in enumerate(get_reg_vals(riscv_sim=riscv_sim)):
@@ -182,7 +199,11 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn) -> bool:
         elif next_action == '!minimal':
             minimal_mode = False
 
-        elif next_action == '':
+        elif next_action == 'run':
+            runthrough_mode = True
+            break
+
+        elif next_action == '' or next_action == 's':
             break
 
         else:
