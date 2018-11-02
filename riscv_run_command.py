@@ -63,10 +63,11 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
     with open(current_test_base_path + '.s') as asm_file:
         asm_instrs = [l for l in (line.strip() for line in asm_file.readlines()) if l]
         pc = 0
+        ic = 0
 
-        last_reg_vals = get_reg_vals(riscv_sim=riscv_sim)
+        last_reg_vals = [[(v, 0)] for v in get_reg_vals(riscv_sim=riscv_sim)]
         for i, reg in enumerate(last_reg_vals):
-            print_reg(i, reg)
+            print_reg(i, reg[-1][0])
         print()
         print('PC 0x0 >')
 
@@ -83,31 +84,32 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
                 changed = False
                 for reg, new_val in enumerate(new_reg_vals):
                     if verbose_mode:
-                        if last_reg_vals[reg] != new_val:
+                        if last_reg_vals[reg][-1][0] != new_val:
                             changed = True
                             print('* ', end='')
                         else:
                             print('  ', end='')
                         print_reg(reg, new_val)
 
-                    elif last_reg_vals[reg] != new_val:
+                    elif last_reg_vals[reg][-1][0] != new_val:
                         changed = True
                         print_reg(reg, new_val)
 
+                    last_reg_vals[reg].append((new_val, ic))
+
                 if not changed:
                     print('No registers changed')
-
-                last_reg_vals = new_reg_vals
 
             else:
                 affected_str = re.search('\s+(.*?),', asm_instrs[int(pc / 4)]).group(1)
                 affected = REGISTER_MAPPINGS[affected_str]
                 affected_new_val = get_reg_vals([affected], riscv_sim=riscv_sim)[0]
                 print_reg(affected, affected_new_val)
-                last_reg_vals[affected] = affected_new_val
+                last_reg_vals[affected].append((affected_new_val, ic))
 
             new_pc_str = re.search('\(PC=(.+?)\)', riscv_sim.match.group(0).decode()).group(1)
             pc = int(new_pc_str, 16)
+            ic += 1
 
             times_typed_exit = 0
             while True:
@@ -160,7 +162,6 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
 
                 else:
                     print('Invalid command. Type "help" for help')
-
 
         return last_reg_vals
 
