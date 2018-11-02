@@ -99,7 +99,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
 
             # Do additional stuff if user wants to or break
             if not runthrough_mode:
-                if config_util_subloop(pc, riscv_sim):
+                if config_util_subloop(pc, riscv_sim, asm=asm_instrs):
                     break
 
             instr_text = asm_instrs[int(pc / 4)]
@@ -181,6 +181,7 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
         elif next_action == 'help' or next_action == 'h':
             options = [('<ENTER> , "s"', 'Step once.'),
                        ('"regdump"', 'Print all reg values.'),
+                       ('"assembly"', 'Print full assembly code of test.'),
                        ('"[!]rigorous"', 'Check all reg values for changes. WARNING: SLOW'),
                        ('"[!]verbose"', 'Print all reg values after each instruction (also enables rigorous).'),
                        ('"[!]minimal"', 'Reduce printed clutter.'),
@@ -199,6 +200,10 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
         elif next_action == 'regdump':
             for i, reg in enumerate(get_reg_vals(riscv_sim=riscv_sim)):
                 print_reg(i, reg)
+
+        elif next_action == 'assembly':
+            if 'asm' in kwargs:
+                pretty_print_assembly(kwargs['asm'])
 
         elif next_action == 'rigorous':
             rigorous_mode = True
@@ -262,3 +267,13 @@ def print_reg(reg, value):
                value if value <= 0x7fffffffffffffff else -(value - 0x8000000000000000)))
     else:
         print('%-4s  0x%X' % (REGISTER_TO_STR[reg], value))
+
+
+def pretty_print_assembly(lines: [str]):
+    for line in lines:
+        if line.endswith(']'):
+            label = re.search('\[(.*?)\]', line).group(1)
+            print('%s:' % label)
+            print('\t%s' % line.strip('[' + label + ']'))
+        else:
+            print('\t%s' % line)

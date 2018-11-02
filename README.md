@@ -41,6 +41,7 @@ As a matter of fact, I literally use that project for the majority of what this 
 ## Features
 * Step through execution in order, seeing what registers are changed in each instruction
 * Dump all register values at any line in program execution
+* Print all assembly code of current test
 * Rigorous mode - verify that at most 1 register is being written to each cycle (off by default because it is SLOW)
 * Verbose mode - All the same functionality of rigorous mode, but prints all 32 registers after each step
 * Minimal mode - Shows enough to be useful and no more than that
