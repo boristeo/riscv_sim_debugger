@@ -61,8 +61,13 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
 
     with open(current_test_base_path + '.s') as asm_file:
         asm_instrs = [l for l in (line.strip() for line in asm_file.readlines()) if l]
-        last_reg_vals = [-1 for _ in range(RISCV_REG_COUNT)]
+        last_reg_vals = get_reg_vals(riscv_sim=riscv_sim)
         pc = 0
+
+        for i, reg in enumerate(get_reg_vals(riscv_sim=riscv_sim)):
+            print_reg(i, reg)
+        print()
+
         while pc / 4 < len(asm_instrs) and not asm_instrs[int(pc / 4)].startswith('ebreak'):
             print('PC=0x%x' % pc)
             print(asm_instrs[int(pc / 4)])
@@ -74,14 +79,41 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
             changed = False
             for reg, new_val in enumerate(new_reg_vals):
                 if last_reg_vals[reg] != new_val:
-                    print('R%-2d %-6s = 0x%x   ' % (reg, '(' + REGISTER_TO_STR[reg] + ')', new_val))
+                    print_reg(reg, new_val)
                     changed = True
             if not changed:
                 print('No registers changed')
 
             last_reg_vals = new_reg_vals
-            print()
-            if input('(Press ENTER to continue or type "quit" to stop) > ') == 'quit':
-                break
+
+            times_typed_exit = 0
+            while True:
+                print()
+                next_action = input('Options: {ENTER: continue, "regdump": print all reg values, "stop": end test, "quit": exit program} > ')
+                if next_action == 'stop':
+                    return last_reg_vals
+
+                if next_action == 'quit':
+                    exit(0)
+
+                if next_action == 'exit':
+                    times_typed_exit += 1
+                    if times_typed_exit < 3:
+                        print('No, this program uses "quit". Try again.')
+                        continue
+                    else:
+                        print('Fine.')
+                        exit(0)
+
+                if next_action == '':
+                    break
+
+                if next_action == 'regdump':
+                    for i, reg in enumerate(get_reg_vals(riscv_sim=riscv_sim)):
+                        print_reg(i, reg)
 
         return last_reg_vals
+
+
+def print_reg(reg, value):
+    print('R%-2d %-6s = 0x%x   ' % (reg, '(' + REGISTER_TO_STR[reg] + ')', value))
