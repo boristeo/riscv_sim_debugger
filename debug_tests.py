@@ -43,12 +43,25 @@ if __name__ == '__main__':
         if match is not None
     ]
     tests.sort()
-    print("Found tests: '%s'" % tests)
 
-    for test in tests:
-        current_test_base_path = os.path.join(generated_dir, test)
+    while True:
+        print()
+        print('Available tests:')
+        for i, test in enumerate(tests):
+            print('%3d | %s' % (i, test))
+        print()
 
-        print('Running test: %s' % test)
+        test_to_run = -1
+
+        while test_to_run < 0 or test_to_run > len(tests) - 1:
+            try:
+                test_to_run = int(input('Which test number to run? > '))
+            except ValueError:
+                print('Invalid choice. Try again.')
+
+        current_test_base_path = os.path.join(generated_dir, tests[test_to_run])
+
+        print('Running test: %s' % tests[test_to_run])
         with open(current_test_base_path + '.script') as file:
             with pex.spawn(riscv_sim_dir) as sim:
                 loaded = False
