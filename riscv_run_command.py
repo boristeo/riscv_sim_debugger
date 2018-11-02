@@ -65,6 +65,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
         pc = 0
         ic = 0
 
+        print_reg_header()
         last_reg_vals = [[(v, 0)] for v in get_reg_vals(riscv_sim=riscv_sim)]
         for i, reg in enumerate(last_reg_vals):
             print_reg(i, reg[-1][0])
@@ -79,6 +80,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
             riscv_sim.sendline('run %d 1' % pc)
             riscv_sim.expect(RISCV_INPUT_HEADER)
 
+            print_reg_header()
             if rigorous_mode or verbose_mode:
                 new_reg_vals = get_reg_vals(riscv_sim=riscv_sim)
                 changed = False
@@ -114,7 +116,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
             times_typed_exit = 0
             while True:
                 print()
-                next_action = input('PC 0x%x > ' % pc)
+                next_action = input('PC 0x%X > ' % pc)
                 if next_action == 'stop':
                     return last_reg_vals
 
@@ -166,5 +168,15 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
         return last_reg_vals
 
 
+def print_reg_header():
+    print('%-3s %-6s    %18s    %20s    %20s' % ('r#', 'name', 'hexadecimal', 'unsigned decimal', 'signed decimal'))
+    print('___ ______    __________________    ____________________    ____________________')
+
+
 def print_reg(reg, value):
-    print('R%-2d %-6s = 0x%x   ' % (reg, '(' + REGISTER_TO_STR[reg] + ')', value))
+    print('R%-2d %-6s    0x%16X    %20d    %20d' %
+          (reg,
+           '(' + REGISTER_TO_STR[reg] + ')',
+           value,
+           value,
+           value if value <= 0x7fffffffffffffff else -(value - 0x8000000000000000)))
