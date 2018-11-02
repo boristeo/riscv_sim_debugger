@@ -35,18 +35,18 @@ At the moment, this program is slightly underdeveloped, so all you can do is pas
 ./debug_tests.py ./path/to/simulator
 ```
 
-These tests are of the same format as those used by SeijiEmery in his rv-test project (https://github.com/seijiemery/rv-test). 
+Perfectly compatible with tests used by SeijiEmery in the rv-test project (https://github.com/seijiemery/rv-test). 
 As a matter of fact, I literally use that project for the majority of what this program does at the moment.
-
-Hopefully that will change soon as I add various debugging features like stepping and variable watches.
 
 ## Features
 * Step through execution in order, seeing what registers are changed in each instruction
 * Dump all register values at any line in program execution
+* Rigorous mode - verify that at most 1 register is being written to each cycle (off by default because it is SLOW)
+* Verbose mode - All the same functionality of rigorous mode, but prints all 32 registers after each step
 
 ## Description
 This is a work in progress (obviously), but the intent is to create a system for interactive debugging of the RISC-V simulator that I am currently working on as a project for my computer architecture course.
 
-Up until this point, I have done little testing of the project, and I was very excited to find that several of my classmates have built their own testing solutions for their groups.
+I was very excited to find that several of my classmates have built their own testing solutions for their groups. Here, I have adapted one that particularly stood out to me to be used for stepping through the simulator execution and finding errors as they occur.
 
-Here, I have adapted one that particularly stood out to me to be used for stepping through the simulator execution and finding errors as they occur.
+The majority of what my program does is controlling the RISC-V simulator subprocess by effectively piping into stdin and reading stdout (I use the wonderful `pexpect` package for this). Unfortunately, this also makes my program run ridiculously slowly in some cases. This is good, because I don't have to worry too much about writing efficient code :)
