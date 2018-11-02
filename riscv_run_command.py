@@ -77,7 +77,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
             if asm_instrs[i].endswith(':'):
                 # This can and will fail if the label is at the last line
                 # but that should never happen
-                asm_instrs[i + 1] = asm_instrs[i + 1] + ' [' + asm_instrs[i + 1] + ']'
+                asm_instrs[i + 1] = asm_instrs[i + 1].strip('\n') + ' [' + asm_instrs[i].strip(':') + ']'
                 asm_instrs.pop(i)
                 continue
             i += 1
@@ -130,7 +130,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
                 if not changed:
                     print('No registers changed')
 
-            elif not instr_text.startswith(('j', 's', 'b')):
+            elif not instr_text.startswith(('j ', 's', 'b')):
                     affected_str = re.search('\s+([a-z0-9]*?),', instr_text).group(1)
                     affected = REGISTER_MAPPINGS[affected_str]
                     affected_new_val = next(get_reg_vals([affected], riscv_sim=riscv_sim))

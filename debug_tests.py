@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     riscv_sim_dir = sys.argv[1]
 
-    tests_dir = 'tests'
+    tests_dir = 'rv_test/tests'
     generated_dir = 'generated'
     results_dir = 'results'
 
