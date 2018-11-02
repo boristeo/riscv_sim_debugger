@@ -7,6 +7,7 @@ import pexpect as pex
 from riscv_run_command import *
 sys.path.insert(0, './rv_test')
 from rv_test.generate import generate_files_from_directory
+from rv_test.run_tests import run_test
 
 
 def validate_test_file():
@@ -48,7 +49,11 @@ if __name__ == '__main__':
         print()
         print('Available tests:')
         for i, test in enumerate(tests):
-            print('%3d | %s' % (i, test))
+            sys.stdout = None
+            test_passed = run_test(riscv_sim_dir)(test)
+            sys.stdout = sys.__stdout__
+            result_marker = bcolors.OKGREEN + 'ok' + bcolors.ENDC if test_passed else bcolors.FAIL + '!!' + bcolors.ENDC
+            print('%2s %3d | %s' % (result_marker, i, test))
         print()
 
         test_to_run = -1
