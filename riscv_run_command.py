@@ -203,7 +203,7 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
 
         elif next_action == 'assembly':
             if 'asm' in kwargs:
-                pretty_print_assembly(kwargs['asm'])
+                pretty_print_assembly(kwargs['asm'], pc)
 
         elif next_action == 'rigorous':
             rigorous_mode = True
@@ -269,11 +269,12 @@ def print_reg(reg, value):
         print('%-4s  0x%X' % (REGISTER_TO_STR[reg], value))
 
 
-def pretty_print_assembly(lines: [str]):
-    for line in lines:
+def pretty_print_assembly(lines: [str], pc=-1):
+    current_line = int(pc / 4)
+    for i, line in enumerate(lines):
         if line.endswith(']'):
             label = re.search('\[(.*?)\]', line).group(1)
             print('%s:' % label)
-            print('\t%s' % line.strip('[' + label + ']'))
+            print('%3s %s' % ('' if pc < 0 or current_line != i else 'pc>', line.strip('[' + label + ']')))
         else:
-            print('\t%s' % line)
+            print('%3s %s' % ('' if pc < 0 or current_line != i else 'pc>', line))
