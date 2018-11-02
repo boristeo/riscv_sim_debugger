@@ -68,22 +68,32 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
         for i, reg in enumerate(last_reg_vals):
             print_reg(i, reg)
         print()
+        print('PC 0x0 >')
 
         rigorous_mode = False
+        verbose_mode = False
 
         while pc / 4 < len(asm_instrs) and not asm_instrs[int(pc / 4)].startswith('ebreak'):
-            print('PC=0x%x' % pc)
             print(asm_instrs[int(pc / 4)])
             riscv_sim.sendline('run %d 1' % pc)
             riscv_sim.expect(RISCV_INPUT_HEADER)
 
-            if rigorous_mode:
+            if rigorous_mode or verbose_mode:
                 new_reg_vals = get_reg_vals(riscv_sim=riscv_sim)
                 changed = False
                 for reg, new_val in enumerate(new_reg_vals):
-                    if last_reg_vals[reg] != new_val:
+                    if verbose_mode:
+                        if last_reg_vals[reg] != new_val:
+                            changed = True
+                            print('* ', end='')
+                        else:
+                            print('  ', end='')
                         print_reg(reg, new_val)
+
+                    elif last_reg_vals[reg] != new_val:
                         changed = True
+                        print_reg(reg, new_val)
+
                 if not changed:
                     print('No registers changed')
 
@@ -102,14 +112,14 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
             times_typed_exit = 0
             while True:
                 print()
-                next_action = input('Options: {ENTER: continue, "regdump": print all reg values, "stop": end test, "quit": exit program} > ')
+                next_action = input('PC 0x%x > ' % pc)
                 if next_action == 'stop':
                     return last_reg_vals
 
-                if next_action == 'quit':
+                elif next_action == 'quit':
                     exit(0)
 
-                if next_action == 'exit':
+                elif next_action == 'exit':
                     times_typed_exit += 1
                     if times_typed_exit < 3:
                         print('No, this program uses "quit". Try again.')
@@ -118,12 +128,39 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
                         print('Fine.')
                         exit(0)
 
-                if next_action == '':
-                    break
+                elif next_action == 'help':
+                    options = [('<ENTER> , "s"', 'Step once.'),
+                               ('"regdump"', 'Print all reg values.'),
+                               ('"[!]rigorous"', 'Check all reg values for changes. WARNING: SLOW'),
+                               ('"[!]verbose"', 'Print all reg values after each instruction (also enables rigorous).'),
+                               ('"stop"', 'End test.'),
+                               ('"quit"', 'Exit program.')]
+                    print('Options:')
+                    for option in options:
+                        print('\t%-20s: %s' % option)
 
-                if next_action == 'regdump':
+                elif next_action == 'regdump':
                     for i, reg in enumerate(get_reg_vals(riscv_sim=riscv_sim)):
                         print_reg(i, reg)
+
+                elif next_action == 'rigorous':
+                    rigorous_mode = True
+
+                elif next_action == '!rigorous':
+                    rigorous_mode = False
+
+                elif next_action == 'verbose':
+                    verbose_mode = True
+
+                elif next_action == '!verbose':
+                    verbose_mode = False
+
+                elif next_action == '':
+                    break
+
+                else:
+                    print('Invalid command. Type "help" for help')
+
 
         return last_reg_vals
 
