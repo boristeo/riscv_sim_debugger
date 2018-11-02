@@ -69,7 +69,22 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
 
     # MAIN EXECUTE LOOP #
     with open(current_test_base_path + '.s') as asm_file:
-        asm_instrs = [l for l in (line.strip() for line in asm_file.readlines()) if l]
+        # Preload assembly to show alongside results
+        asm_instrs = asm_file.readlines()
+        i = 0
+        while i < len(asm_instrs):
+            asm_instrs[i] = asm_instrs[i].strip('\n')
+            if asm_instrs[i] == '':
+                asm_instrs.pop(i)
+                continue
+            if asm_instrs[i].endswith(':'):
+                # This can and will fail if the label is at the last line
+                # but that should never happen
+                asm_instrs[i + 1] = asm_instrs[i + 1] + ' [' + asm_instrs[i + 1] + ']'
+                asm_instrs.pop(i)
+                continue
+            i += 1
+
         pc = 0
         ic = 0
 
@@ -77,6 +92,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
         last_reg_vals = [[(v, 0)] for v in get_reg_vals(riscv_sim=riscv_sim)]
         for i, reg in enumerate(last_reg_vals):
             print_reg(i, reg[-1][ic])
+
         print()
         config_util_subloop(pc, riscv_sim, **{'show': 'help'})
 
@@ -87,7 +103,9 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
                 if config_util_subloop(pc, riscv_sim):
                     break
 
-            print(asm_instrs[int(pc / 4)])
+            instr_text = asm_instrs[int(pc / 4)]
+
+            print(instr_text)
             riscv_sim.sendline('run %d 1' % pc)
             riscv_sim.expect(RISCV_INPUT_HEADER)
 
@@ -113,12 +131,12 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
                 if not changed:
                     print('No registers changed')
 
-            else:
-                affected_str = re.search('\s+(.*?),', asm_instrs[int(pc / 4)]).group(1)
-                affected = REGISTER_MAPPINGS[affected_str]
-                affected_new_val = get_reg_vals([affected], riscv_sim=riscv_sim)[0]
-                print_reg(affected, affected_new_val)
-                last_reg_vals[affected].append((affected_new_val, ic))
+            elif not instr_text.startswith(('j', 's', 'b')):
+                    affected_str = re.search('\s+([a-z0-9]*?),', instr_text).group(1)
+                    affected = REGISTER_MAPPINGS[affected_str]
+                    affected_new_val = get_reg_vals([affected], riscv_sim=riscv_sim)[0]
+                    print_reg(affected, affected_new_val)
+                    last_reg_vals[affected].append((affected_new_val, ic))
 
             new_pc_str = re.search('\(PC=(.+?)\)', riscv_sim.match.group(0).decode()).group(1)
             pc = int(new_pc_str, 16)
