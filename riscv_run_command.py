@@ -54,6 +54,7 @@ def get_reg_vals(regs_to_get=[i for i in range(RISCV_REG_COUNT)], *, riscv_sim: 
 rigorous_mode = False
 verbose_mode = False
 minimal_mode = False
+headers_on = True
 runthrough_mode = False
 
 
@@ -132,7 +133,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
             elif not instr_text.startswith(('j', 's', 'b')):
                     affected_str = re.search('\s+([a-z0-9]*?),', instr_text).group(1)
                     affected = REGISTER_MAPPINGS[affected_str]
-                    affected_new_val = get_reg_vals([affected], riscv_sim=riscv_sim)[0]
+                    affected_new_val = next(get_reg_vals([affected], riscv_sim=riscv_sim))
                     print_reg(affected, affected_new_val)
                     last_reg_vals[affected].append((affected_new_val, ic))
 
@@ -150,6 +151,7 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
     global verbose_mode
     global minimal_mode
     global runthrough_mode
+    global headers_on
 
     times_typed_exit = 0
     while True:
@@ -182,6 +184,7 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
                        ('"[!]rigorous"', 'Check all reg values for changes. WARNING: SLOW'),
                        ('"[!]verbose"', 'Print all reg values after each instruction (also enables rigorous).'),
                        ('"[!]minimal"', 'Reduce printed clutter.'),
+                       ('"[!]headers"', 'Print [or not] register value headers.'),
                        ('"run"', 'Run through remaining portion of test, continue to next.'),
                        ('"stop", "skip"', 'End test, continue to next.'),
                        ('"help", "h"', 'Show this help message.'),
@@ -215,6 +218,12 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
         elif next_action == '!minimal':
             minimal_mode = False
 
+        elif next_action == 'headers':
+            headers_on = True
+
+        elif next_action == '!headers':
+            headers_on = False
+
         elif next_action == 'run':
             runthrough_mode = True
             break
@@ -227,7 +236,6 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
 
 
 def print_pc(pc):
-    global minimal_mode
     if minimal_mode:
         print(bcolors.OKGREEN + '> ' + bcolors.ENDC, end='')
     else:
@@ -235,7 +243,7 @@ def print_pc(pc):
 
 
 def print_reg_header():
-    if not minimal_mode:
+    if not minimal_mode and headers_on:
         if not verbose_mode:
             print('%-3s %-6s    %18s    %20s    %20s' % ('r#', 'name', 'hexadecimal', 'unsigned decimal', 'signed decimal'))
             print('___ ______    __________________    ____________________    ____________________')
