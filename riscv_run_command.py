@@ -101,7 +101,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
             if len(instrs) != len(asm_instrs):
                 print('Binary file contains %d instructions, assembly file has %d. Is assembly valid?' % (len(instrs), len(asm_instrs)))
                 return
-            
+
         except FileNotFoundError:
             print('Binary file for this test not found. Most likely the assembly is invalid.')
             return
@@ -129,8 +129,10 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
                     break
 
             instr_text = asm_instrs[int(pc / 4)]
+            instr_bin = instrs[int(pc / 4)]
+            print('0x%08X %s' % (instr_bin, instr_text))
 
-            print(instr_text)
+
             riscv_sim.sendline('run %d 1' % pc)
             riscv_sim.expect(RISCV_INPUT_HEADER)
 
