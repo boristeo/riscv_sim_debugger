@@ -173,8 +173,9 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
             command = input()
             command_parts = command.split()
             if len(command_parts) < 1:
-                continue
-            next_action = command_parts[0]
+                next_action = 's'
+            else:
+                next_action = command_parts[0]
         else:
             next_action = kwargs['show']
 
