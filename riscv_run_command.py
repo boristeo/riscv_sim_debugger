@@ -51,6 +51,13 @@ def get_reg_vals(regs_to_get=[i for i in range(RISCV_REG_COUNT)], *, riscv_sim: 
         yield int(reg_val_str)
 
 
+def print_mem_vals(begin, end, *, show_hex = True, riscv_sim: pex.pty_spawn) -> []:
+        riscv_sim.sendline('dump %s %d %d' % ('/x' if show_hex else '', begin, end))
+        riscv_sim.expect(RISCV_INPUT_HEADER)
+        response = riscv_sim.before.decode()
+        print(response)
+
+
 rigorous_mode = False
 verbose_mode = False
 minimal_mode = False
@@ -163,7 +170,11 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
 
         if 'show' not in kwargs:
             print_pc(pc)
-            next_action = input()
+            command = input()
+            command_parts = command.split()
+            if len(command_parts) < 1:
+                continue
+            next_action = command_parts[0]
         else:
             next_action = kwargs['show']
 
@@ -185,6 +196,7 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
         elif next_action == 'help' or next_action == 'h':
             options = [('<ENTER> , "s"', 'Step once.'),
                        ('"regdump"', 'Print all reg values.'),
+                       ('"memdump <from> <to>"', 'Print all memory values in given range.'),
                        ('"assembly"', 'Print full assembly code of test.'),
                        ('"[!]rigorous"', 'Check all reg values for changes. WARNING: SLOW'),
                        ('"[!]verbose"', 'Print all reg values after each instruction (also enables rigorous).'),
@@ -204,6 +216,15 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
         elif next_action == 'regdump':
             for i, reg in enumerate(get_reg_vals(riscv_sim=riscv_sim)):
                 print_reg(i, reg)
+
+        elif next_action == 'memdump':
+            if len(command_parts) < 3:
+                print('Proper usage: memdump <from> <to>')
+                continue
+            try:
+                print_mem_vals(int(command_parts[1]), int(command_parts[2]), riscv_sim=riscv_sim)
+            except ValueError:
+                print('Invalid range')
 
         elif next_action == 'assembly':
             if 'asm' in kwargs:
