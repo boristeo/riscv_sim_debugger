@@ -81,14 +81,18 @@ if __name__ == '__main__':
                         regs = run_by_line(current_test_base_path, riscv_sim=sim)
                         print()
                         print('### END PROGRAM EXECUTION ###')
-                        print('Expected:')
+                        print('Actual:')
 
                     elif not loaded:
                         print(command, end='')
                         run_sim_command(command, riscv_sim=sim)
 
-                    else:
-                        print(run_sim_command(command, riscv_sim=sim))
+                with open(current_test_base_path + '.expected.txt') as expected:
+                    print('REG   EXPECTED           ACTUAL')
+                    for line in expected.readlines():
+                        reg = int(re.match('R([0-9]+?)\s*=\s*(.+?)$', line).group(1))
+                        val = int(re.match('R([0-9]+?)\s*=\s*(.+?)$', line).group(2))
+                        print('R%4d 0x%16X 0x%16X' % (reg, val, next(get_reg_vals([reg], riscv_sim=sim))))
 
         print('\n')
         input('PRESS ENTER TO CONTINUE')
