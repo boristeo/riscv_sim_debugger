@@ -69,6 +69,7 @@ if __name__ == '__main__':
         print('Running test: %s' % tests[test_to_run])
         with open(current_test_base_path + '.script') as file:
             with pex.spawn(riscv_sim_dir) as sim:
+                print('SIMULATOR PID = %d' % sim.pid)
                 loaded = False
 
                 regs = []

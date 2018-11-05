@@ -268,7 +268,7 @@ def print_reg(reg, value):
                '(' + REGISTER_TO_STR[reg] + ')',
                value,
                value,
-               value if value <= 0x7fffffffffffffff else -(value - 0x8000000000000000)))
+               value if value <= 0x7fffffffffffffff else (value & 0x7fffffffffffffff) - 0x8000000000000000))
     else:
         print('%-4s  0x%X' % (REGISTER_TO_STR[reg], value))
 
