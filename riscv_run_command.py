@@ -88,6 +88,24 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
                 continue
             i += 1
 
+        # Preload hex. Might not be optimal to read in 4 byte chunks, but that's not nearly the worst in this program
+        try:
+            bin_file = open(current_test_base_path + '.bin', 'rb')
+            instrs = []
+            instr = bin_file.read(4)
+            while instr:
+                instrs.append(int.from_bytes(instr, byteorder='little'))
+                instr = bin_file.read(4)
+
+            # If not 1-1 correspondence between asm and 4 byte instrs, warn user and stop
+            if len(instrs) != len(asm_instrs):
+                print('Binary file contains %d instructions, assembly file has %d. Is assembly valid?' % (len(instrs), len(asm_instrs)))
+                return
+            
+        except FileNotFoundError:
+            print('Binary file for this test not found. Most likely the assembly is invalid.')
+            return
+
         # Set beginning values
         pc = 0
         ic = 0
@@ -107,7 +125,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
 
             # Do additional stuff if user wants to or break
             if not runthrough_mode:
-                if config_util_subloop(pc, riscv_sim, asm=asm_instrs):
+                if config_util_subloop(pc, riscv_sim, asm=asm_instrs, bin=instrs):
                     break
 
             instr_text = asm_instrs[int(pc / 4)]
@@ -229,7 +247,7 @@ def config_util_subloop(pc: int, riscv_sim: pex.pty_spawn, **kwargs) -> bool:
 
         elif next_action == 'assembly':
             if 'asm' in kwargs:
-                pretty_print_assembly(kwargs['asm'], pc)
+                pretty_print_assembly(kwargs['asm'], pc, bin=kwargs['bin'])
 
         elif next_action == 'rigorous':
             rigorous_mode = True
@@ -295,12 +313,14 @@ def print_reg(reg, value):
         print('%-4s  0x%X' % (REGISTER_TO_STR[reg], value))
 
 
-def pretty_print_assembly(lines: [str], pc=-1):
+def pretty_print_assembly(lines: [str], pc=-1, **kwargs):
     current_line = int(pc / 4)
+
     for i, line in enumerate(lines):
+        hex_instr = ('0x%08X' % kwargs['bin'][i]) if 'bin' in kwargs else ''
         if line.endswith(']'):
             label = re.search('\[(.*?)\]', line).group(1)
             print('%s:' % label)
-            print('%3s %s' % ('' if pc < 0 or current_line != i else 'pc>', line.strip('[' + label + ']')))
+            print('%3s %-40s %s' % ('' if pc < 0 or current_line != i else 'pc>', line.strip('[' + label + ']'), hex_instr))
         else:
-            print('%3s %s' % ('' if pc < 0 or current_line != i else 'pc>', line))
+            print('%3s %-40s %s' % ('' if pc < 0 or current_line != i else 'pc>', line, hex_instr))
