@@ -132,8 +132,7 @@ def run_by_line(current_test_base_path, *, riscv_sim: pex.pty_spawn) -> []:
             instr_bin = instrs[int(pc / 4)]
             print('0x%08X %s' % (instr_bin, instr_text))
 
-
-            riscv_sim.sendline('run %d 1' % pc)
+            riscv_sim.sendline('run 1')
             riscv_sim.expect(RISCV_INPUT_HEADER)
 
             print_reg_header()
